@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,16 +20,35 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          docker stop send-email-consumer || true
-          docker rm send-email-consumer || true
+          # Navegar al directorio de la aplicación
           cd /home/ubuntu/apps/send-email-consumer
+
+          # Actualizar el código del repositorio
           git pull origin main
-          docker build -t send-email-consumer:latest .
+
+          # Verificar si la imagen existe
+          if [[ "$(docker images -q send-email-consumer:latest 2> /dev/null)" == "" ]]; then
+            echo "Building the Docker image..."
+            docker build -t send-email-consumer:latest .
+          else
+            echo "Docker image already exists, skipping build..."
+          fi
+
+          # Detener y eliminar el contenedor si ya existe
+          if [[ "$(docker ps -q -f name=send-email-consumer)" ]]; then
+            echo "Stopping and removing existing container..."
+            docker stop send-email-consumer
+            docker rm send-email-consumer
+          fi
+
+          # Ejecutar el nuevo contenedor
           docker run -d --name send-email-consumer --restart unless-stopped \
             -e RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
             -e KAFKA_BROKER=${{ secrets.KAFKA_BROKER }} \
             -e KAFKA_TOPIC=${{ secrets.KAFKA_TOPIC }} \
             -e KAFKA_GROUP_ID=${{ secrets.KAFKA_GROUP_ID }} \
             send-email-consumer:latest
+
+          # Limpiar imágenes no utilizadas
           docker image prune -f
           docker rmi $(docker images --filter "dangling=true" -q) || true
