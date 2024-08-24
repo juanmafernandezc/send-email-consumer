@@ -1,8 +1,4 @@
-FROM debian:buster-slim as builder
-
-RUN apt-get update && apt-get install -y \
-    golang-go \
-    && rm -rf /var/lib/apt/lists/*
+FROM arm64v8/golang:1.20-buster as builder
 
 WORKDIR /app
 
@@ -13,9 +9,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /send-email-consumer main.go
+RUN GOARCH=arm64 go build -o /send-email-consumer main.go
 
-FROM debian:buster-slim
+FROM arm64v8/debian:buster-slim
 
 RUN apt-get update && apt-get install -y \
     libc6 \
