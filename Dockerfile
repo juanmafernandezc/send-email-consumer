@@ -2,9 +2,13 @@ FROM golang:1.20 as builder
 
 WORKDIR /app
 
-COPY . .
+COPY go.mod .
+COPY go.sum .
 
 RUN go mod download
+
+COPY . .
+
 RUN go build -o /send-email-consumer main.go
 
 FROM gcr.io/distroless/base-debian10
