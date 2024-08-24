@@ -1,8 +1,10 @@
-FROM golang:1.20-alpine as builder
+FROM debian:buster-slim as builder
+
+RUN apt-get update && apt-get install -y \
+    golang-go \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-RUN apk add --no-cache gcc musl-dev
 
 COPY go.mod .
 COPY go.sum .
@@ -13,9 +15,11 @@ COPY . .
 
 RUN go build -o /send-email-consumer main.go
 
-FROM alpine:3.18
+FROM debian:buster-slim
 
-RUN apk add --no-cache libc6-compat
+RUN apt-get update && apt-get install -y \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /send-email-consumer /send-email-consumer
 
