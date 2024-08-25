@@ -11,7 +11,6 @@ This application is a Kafka consumer written in Go that listens to a specific Ka
 - [Environment Variables](#environment-variables)
 - [Building the Docker Image](#building-the-docker-image)
 - [Deploying the Application](#deploying-the-application)
-- [License](#license)
 
 ## Project Structure
 
