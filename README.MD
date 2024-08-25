@@ -53,8 +53,8 @@ The application requires several environment variables to run. These can be set 
 - `KAFKA_BROKER`: The address of your Kafka broker.
 - `KAFKA_TOPIC`: The Kafka topic to which the consumer will subscribe.
 - `KAFKA_GROUP_ID`: The consumer group ID for Kafka.
-- `KAFKA_SASL_USERNAME`: (Optional) SASL username for Kafka authentication.
-- `KAFKA_SASL_PASSWORD`: (Optional) SASL password for Kafka authentication.
+- `KAFKA_SASL_USERNAME`: SASL username for Kafka authentication.
+- `KAFKA_SASL_PASSWORD`: SASL password for Kafka authentication.
 
 ## Building the Docker Image
 
