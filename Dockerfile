@@ -1,4 +1,4 @@
-FROM arm64v8/ubuntu:20.04 as builder
+FROM arm64v8/debian:stretch-slim as builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /send-email-consumer -ldflags="-s -w" main.go
 
-FROM arm64v8/ubuntu:20.04
+FROM arm64v8/debian:stretch-slim
 
 COPY --from=builder /app/send-email-consumer /send-email-consumer
 
