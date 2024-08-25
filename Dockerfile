@@ -1,20 +1,20 @@
-FROM arm64v8/debian:stretch-slim as builder
+FROM golang:1.20-alpine AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y build-essential
+RUN apk update && apk add --no-cache git
 
-COPY go.mod .
-COPY go.sum .
-
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /send-email-consumer -ldflags="-s -w" main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -installsuffix cgo -o send-email-consumer main.go
 
-FROM arm64v8/debian:stretch-slim
+FROM alpine:latest
 
-COPY --from=builder /app/send-email-consumer /send-email-consumer
+WORKDIR /root/
 
-CMD ["/send-email-consumer"]
+COPY --from=builder /app/send-email-consumer .
+
+CMD ["./send-email-consumer"]
