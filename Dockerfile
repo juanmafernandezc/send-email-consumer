@@ -15,7 +15,7 @@ ENV CGO_ENABLED=0
 
 RUN GOOS=linux GOARCH=arm64 go build -o /send-email-consumer -ldflags="-s -w" main.go
 
-FROM arm64v8/alpine:3.18
+FROM arm64v8/debian:bullseye-slim
 
 COPY --from=builder /send-email-consumer /send-email-consumer
 
