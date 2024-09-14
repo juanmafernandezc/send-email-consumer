@@ -1,6 +1,6 @@
 # Send Email Consumer
 
-This application is a Kafka consumer written in Go that listens to a specific Kafka topic for incoming messages containing email information. Upon receiving a message, the application sends an email using the Resend email service.
+This application is a RabbitMQ consumer written in Go that listens to a specific RabbitMQ queue for incoming messages containing email information. Upon receiving a message, the application sends an email using the Resend email service.
 
 ## Table of Contents
 
@@ -14,14 +14,14 @@ This application is a Kafka consumer written in Go that listens to a specific Ka
 
 ## Project Structure
 
-- `main.go`: The main application file that contains the logic to consume Kafka messages and send emails.
+- `main.go`: The main application file that contains the logic to consume RabbitMQ messages and send emails.
 - `Dockerfile`: A multi-stage Dockerfile to build and run the application.
 - `deploy.yml`: GitHub Actions workflow file to automate deployment to a remote server.
 - `go.mod`, `go.sum`: Go modules files that manage dependencies.
 
 ## Features
 
-- **Kafka Consumer**: Listens to a Kafka topic for incoming messages.
+- **RabbitMQ Consumer**: Listens to a RabbitMQ queue for incoming messages.
 - **Email Sending**: Sends an email using the Resend email service when a message is received.
 - **Dockerized**: The application is containerized using Docker for easy deployment.
 - **Automated Deployment**: Uses GitHub Actions to automate deployment to a remote server.
@@ -30,7 +30,7 @@ This application is a Kafka consumer written in Go that listens to a specific Ka
 
 - Go 1.20 or later
 - Docker
-- Kafka broker
+- RabbitMQ broker
 - Resend email service API key
 - Access to a Linux-based server for deployment
 
@@ -50,15 +50,16 @@ This application is a Kafka consumer written in Go that listens to a specific Ka
 The application requires several environment variables to run. These can be set in your deployment environment (e.g., in the Docker container) or passed directly during runtime.
 
 - `RESEND_API_KEY`: Your API key for the Resend email service.
-- `KAFKA_BROKER`: The address of your Kafka broker.
-- `KAFKA_TOPIC`: The Kafka topic to which the consumer will subscribe.
-- `KAFKA_GROUP_ID`: The consumer group ID for Kafka.
-- `KAFKA_SASL_USERNAME`: SASL username for Kafka authentication.
-- `KAFKA_SASL_PASSWORD`: SASL password for Kafka authentication.
+- `RABBITMQ_URL`: The connection URL for RabbitMQ in the format `amqp://user:password@host:port/vhost`.
+- `RABBITMQ_QUEUE`: The RabbitMQ queue to which the consumer will subscribe.
+  
+### Optional Environment Variables
+- `RABBITMQ_EXCHANGE`: The RabbitMQ exchange name (if needed for advanced routing).
+- `RABBITMQ_ROUTING_KEY`: The routing key used if subscribing to a topic exchange in RabbitMQ.
 
 ## Building the Docker Image
 
 The application is designed to be built and run in a Docker container. You can build the Docker image using the following command:
 
 ```bash
-docker buildx build --platform linux/arm64 -t send-email-consumer:latest --load .
+docker buildx build --platform linux/amd64 -t send-email-consumer:latest --load .

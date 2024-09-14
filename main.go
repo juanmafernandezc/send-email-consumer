@@ -1,102 +1,108 @@
 package main
 
 import (
-    "context"
-    "crypto/tls"
-    "encoding/json"
-    "fmt"
-    "log"
-    "os"
-    "time"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
 
-    "github.com/segmentio/kafka-go"
-    "github.com/segmentio/kafka-go/sasl/scram"
-    "github.com/resend/resend-go/v2"
+	"github.com/resend/resend-go/v2"
+	"github.com/streadway/amqp"
 )
 
 type EmailMessage struct {
-    ReplyTo string `json:"replyTo"`
-    To      string `json:"to"`
-    Subject string `json:"subject"`
-    Message string `json:"message"`
-}
-
-func Consumer(topic string, groupId string, resendAPIKey string) {
-    saslUsername := os.Getenv("KAFKA_SASL_USERNAME")
-    saslPassword := os.Getenv("KAFKA_SASL_PASSWORD")
-    kafkaBroker := os.Getenv("KAFKA_BROKER")
-
-    mechanism, err := scram.Mechanism(scram.SHA512, saslUsername, saslPassword)
-    if err != nil {
-        log.Fatalf("Failed to create SASL mechanism: %v", err)
-    }
-
-    r := kafka.NewReader(kafka.ReaderConfig{
-        Brokers: []string{kafkaBroker},
-        GroupID: groupId,
-        Topic:   topic,
-        Dialer: &kafka.Dialer{
-            SASLMechanism: mechanism,
-            TLS:           &tls.Config{},
-        },
-    })
-
-    defer r.Close()
-
-    client := resend.NewClient(resendAPIKey)
-
-    for {
-        ctx, cancel := context.WithTimeout(context.Background(), time.Second*120)
-        defer cancel()
-
-        message, err := r.ReadMessage(ctx)
-        if err != nil {
-            log.Printf("Error reading message: %v", err)
-            continue
-        }
-
-        fmt.Printf("Message received: Partition: %d Offset: %d Value: %s\n", message.Partition, message.Offset, string(message.Value))
-
-        err = sendEmail(client, message.Value)
-        if err != nil {
-            log.Printf("Error sending email: %v", err)
-        }
-    }
-}
-
-func sendEmail(client *resend.Client, message []byte) error {
-    var emailMessage EmailMessage
-
-    err := json.Unmarshal(message, &emailMessage)
-    if err != nil {
-        return fmt.Errorf("error deserializing message: %w", err)
-    }
-
-    params := &resend.SendEmailRequest{
-        From:    "Juanmalabs <develop@juanmalabs.com>",
-        To:      []string{emailMessage.To},
-        Html:    emailMessage.Message,
-        Subject: emailMessage.Subject,
-        ReplyTo: emailMessage.ReplyTo,
-    }
-
-    sent, err := client.Emails.Send(params)
-    if err != nil {
-        return fmt.Errorf("error sending email: %w", err)
-    }
-
-    log.Printf("Email sent, ID: %s\n", sent.Id)
-    return nil
+	ReplyTo string `json:"replyTo"`
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
 }
 
 func main() {
-    resendAPIKey := os.Getenv("RESEND_API_KEY")
-    topic := os.Getenv("KAFKA_TOPIC")
-    groupId := os.Getenv("KAFKA_GROUP_ID")
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+	queueName := os.Getenv("RABBITMQ_QUEUE")
+	resendAPIKey := os.Getenv("RESEND_API_KEY")
 
-    if resendAPIKey == "" || topic == "" || groupId == "" {
-        log.Fatal("Missing required environment variables")
-    }
+	if rabbitURL == "" || queueName == "" || resendAPIKey == "" {
+		log.Fatal("Faltan variables de entorno necesarias")
+	}
 
-    Consumer(topic, groupId, resendAPIKey)
+	conn, err := amqp.Dial(rabbitURL)
+	if err != nil {
+		log.Fatalf("No se pudo conectar a RabbitMQ: %v", err)
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("No se pudo abrir un canal: %v", err)
+	}
+	defer ch.Close()
+
+	_, err = ch.QueueDeclare(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("No se pudo declarar la cola: %v", err)
+	}
+
+	msgs, err := ch.Consume(
+		queueName,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("No se pudo registrar un consumidor: %v", err)
+	}
+
+	client := resend.NewClient(resendAPIKey)
+
+	forever := make(chan bool)
+
+	go func() {
+		for d := range msgs {
+			log.Printf("Recibido mensaje: %s", d.Body)
+
+			err := sendEmail(client, d.Body)
+			if err != nil {
+				log.Printf("Error enviando email: %v", err)
+			}
+		}
+	}()
+
+	log.Printf("Esperando mensajes en la cola %s. Para salir presiona CTRL+C", queueName)
+	<-forever
+}
+
+func sendEmail(client *resend.Client, message []byte) error {
+	var emailMessage EmailMessage
+
+	err := json.Unmarshal(message, &emailMessage)
+	if err != nil {
+		return fmt.Errorf("error deserializando mensaje: %w", err)
+	}
+
+	params := &resend.SendEmailRequest{
+		From:    "Juanmalabs <develop@juanmalabs.com>",
+		To:      []string{emailMessage.To},
+		Html:    emailMessage.Message,
+		Subject: emailMessage.Subject,
+		ReplyTo: emailMessage.ReplyTo,
+	}
+
+	sent, err := client.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("error enviando email: %w", err)
+	}
+
+	log.Printf("Email enviado, ID: %s\n", sent.Id)
+	return nil
 }

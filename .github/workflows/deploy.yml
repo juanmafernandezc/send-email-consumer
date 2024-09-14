@@ -38,11 +38,8 @@ jobs:
 
             docker run -d --name send-email-consumer --restart unless-stopped \
               -e RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
-              -e KAFKA_BROKER=${{ secrets.KAFKA_BROKER }} \
-              -e KAFKA_TOPIC=${{ secrets.KAFKA_TOPIC }} \
-              -e KAFKA_GROUP_ID=${{ secrets.KAFKA_GROUP_ID }} \
-              -e KAFKA_SASL_USERNAME=${{ secrets.KAFKA_SASL_USERNAME }} \
-              -e KAFKA_SASL_PASSWORD=${{ secrets.KAFKA_SASL_PASSWORD }} \
+              -e RABBITMQ_QUEUE=${{ secrets.RABBITMQ_QUEUE }} \
+              -e RABBITMQ_URL=${{ secrets.RABBITMQ_URL }} \
               send-email-consumer:latest
 
             docker image prune -f
