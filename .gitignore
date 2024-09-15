@@ -14,7 +14,6 @@
 vendor/
 
 # Go Modules
-go.sum
 go.work
 go.work.sum
 
