@@ -1,0 +1,41 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the go tool
+/bin/
+/pkg/
+/out/
+
+# Dependency directories (for example, vendored packages)
+vendor/
+
+# Go Modules
+go.sum
+go.work
+go.work.sum
+
+# IDEs and editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+
+# Test binary
+*.test
+
+# Coverage output
+*.cover
+*.cov
+
+# Configuration files
+.env
+
+# Docker files
+docker-compose.override.yml
